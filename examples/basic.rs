@@ -1,19 +1,39 @@
+use rigctld::{Daemon, Rig};
 use tokio::time::{sleep, Duration};
 
 #[tokio::main]
 async fn main() {
-    let mut rig = rigctld::Rigctld::new("127.0.0.1", 8001);
+    // Start `rigctld`
+    let mut daemon = Daemon::default();
+    daemon.spawn().unwrap();
+
+    // Wait a few milliseconds until `rigctld` is ready
+    sleep(Duration::from_millis(500)).await;
+
+    // Connect to `rigctld`
+    let mut rig = Rig::new("127.0.0.1", 4532);
     rig.connect().await.unwrap();
 
-    let mut counter = 7100000;
-    loop {
+    // Set mode
+    let (mode, _) = rig.get_mode().await.unwrap();
+    println!("Rig started in mode {}", mode);
+    rig.set_mode(rigctld::RigMode::LSB, 0).await.unwrap();
+    let (mode, _) = rig.get_mode().await.unwrap();
+    println!("Set rig to mode {}", mode);
+
+    let mut counter = 7000000;
+    while counter < 7200000 {
+        // Set frequency
         rig.set_frequency(counter).await.unwrap();
-        rig.set_mode(rigctld::RigctldMode::LSB, 0).await.unwrap();
+
+        // Get frequency
         let freq = rig.get_frequency().await.unwrap();
-        let (mode, pb) = rig.get_mode().await.unwrap();
-        println!("{} Hz", freq);
-        println!("Mode: {}, Passband: {}", mode, pb);
+        println!("Current frequency {} Hz", freq);
+
+        counter += 10000;
+
         sleep(Duration::from_millis(500)).await;
-        counter += 1;
     }
+
+    println!("Done.");
 }
