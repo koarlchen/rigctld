@@ -44,7 +44,7 @@ impl Drop for Daemon {
 /// Deamon implementation.
 impl Daemon {
     /// Spawn new instance of `rigctld`.
-    pub fn spawn(mut self) -> Result<Daemon, io::Error> {
+    pub fn spawn(&mut self) -> Result<(), io::Error> {
         if self.daemon.is_some() {
             return Err(io::Error::new(
                 io::ErrorKind::AlreadyExists,
@@ -70,7 +70,7 @@ impl Daemon {
 
         self.daemon = Some(cmd.spawn()?);
 
-        Ok(self)
+        Ok(())
     }
 
     /// Kill a running instance of `rigctld`.
