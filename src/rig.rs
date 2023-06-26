@@ -124,6 +124,10 @@ impl Rig {
 
     /// Connect to a already running `rigctld`.
     pub async fn connect(&mut self) -> Result<(), RigError> {
+        if self.reader.is_some() && self.writer.is_some() {
+            return Err(RigError::ConnectionError);
+        }
+
         let constring = format!("{}:{}", self.host, self.port);
 
         let stream = TcpStream::connect(constring)
@@ -134,6 +138,17 @@ impl Rig {
         self.writer = Some(tx);
 
         Ok(())
+    }
+
+    /// Disconnect from `rigctld`.
+    pub fn disconnect(&mut self) -> Result<(), RigError> {
+        if self.reader.is_none() && self.writer.is_none() {
+            Err(RigError::ConnectionError)
+        } else {
+            self.reader = None;
+            self.writer = None;
+            Ok(())
+        }
     }
 
     /// Get frequency.
