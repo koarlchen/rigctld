@@ -19,7 +19,8 @@ pub struct Daemon {
 }
 
 impl Default for Daemon {
-    /// Get default `rigctld` configuration. If spawned, `rigctld` opens the socket on `127.0.0.1:4532` and will use the dummy device model.
+    /// Get default `rigctld` configuration.
+    /// If spawned, `rigctld` opens the socket on `127.0.0.1:4532` and will use the dummy device model.
     fn default() -> Self {
         Daemon {
             program: "rigctld".into(),
@@ -43,7 +44,14 @@ impl Drop for Daemon {
 /// Deamon implementation.
 impl Daemon {
     /// Spawn new instance of `rigctld`.
-    pub fn spawn(&mut self) -> Result<(), io::Error> {
+    pub fn spawn(mut self) -> Result<Daemon, io::Error> {
+        if self.daemon.is_some() {
+            return Err(io::Error::new(
+                io::ErrorKind::AlreadyExists,
+                "Daemon already started",
+            ));
+        }
+
         let mut binding = Command::new(self.program.clone());
         let cmd = binding
             .args(["-T", &self.host])
@@ -62,22 +70,18 @@ impl Daemon {
 
         self.daemon = Some(cmd.spawn()?);
 
-        Ok(())
+        Ok(self)
     }
 
-    /// Kill a running instance of `rigctld`. May check if the deamon is still running by calling [`Self::is_running()`].
+    /// Kill a running instance of `rigctld`.
     pub fn kill(&mut self) -> Result<(), io::Error> {
-        let res = if self.is_running()? {
-            if let Some(d) = self.daemon.as_mut() {
-                d.kill()
-            } else {
-                Err(io::Error::new(
-                    io::ErrorKind::NotFound,
-                    "Daemon not started",
-                ))
-            }
+        let res = if let Some(d) = self.daemon.as_mut() {
+            d.kill()
         } else {
-            Ok(())
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "Daemon not started",
+            ))
         };
 
         self.daemon = None;
@@ -105,44 +109,54 @@ impl Daemon {
 
     /// Sets the name of the `rigctld` program.
     /// The name may be prefixed with the path to `rigctld` if it is not present within the `PATH` variable.
-    pub fn set_program(&mut self, app: String) -> &mut Daemon {
+    pub fn set_program(mut self, app: String) -> Daemon {
         self.program = app;
         self
     }
 
     /// Set the host or rather ip address to open the listening socket on.
-    pub fn set_host(&mut self, host: String) -> &mut Daemon {
+    pub fn set_host(mut self, host: String) -> Daemon {
         self.host = host;
         self
     }
 
     /// Set the port to open the listening socket on.
-    pub fn set_port(&mut self, port: u16) -> &mut Daemon {
+    pub fn set_port(mut self, port: u16) -> Daemon {
         self.port = port;
         self
     }
 
     /// Set the device model. See `rigctld -l` for supported models.
-    pub fn set_model(&mut self, model: u32) -> &mut Daemon {
+    pub fn set_model(mut self, model: u32) -> Daemon {
         self.model = model;
         self
     }
 
     /// Set the rigs device file, e.g. `/dev/ttyUSB0`.
-    pub fn set_rig_file(&mut self, file: String) -> &mut Daemon {
+    pub fn set_rig_file(mut self, file: String) -> Daemon {
         self.rig_file = Some(file);
         self
     }
 
     /// Set the rigs serial speed, e.g. 19200.
-    pub fn set_serial_speed(&mut self, speed: u32) -> &mut Daemon {
+    pub fn set_serial_speed(mut self, speed: u32) -> Daemon {
         self.serial_speed = Some(speed);
         self
     }
 
     /// Set the rigs CIV address, e.g. 0x76.
-    pub fn set_civ_address(&mut self, addr: u16) -> &mut Daemon {
+    pub fn set_civ_address(mut self, addr: u16) -> Daemon {
         self.civ_address = Some(addr);
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rigctld_exists() {
+        Daemon::default().spawn().unwrap();
     }
 }
