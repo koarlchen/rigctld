@@ -1,14 +1,17 @@
+# Client implementation for `rigctld`
 
-* List all supported devices: `rigctld -l`
-* Opening Dummy-Device: `rigctld -T 127.0.0.1 -t 8001` 
-* Opening IC7200: `rigctld -m 3061 -s 19200 -c 0x76 -T 127.0.0.1 -t 8001 -r /dev/ttyUSB0`
+This library makes use of `rigctld`, which is part of the [hamlib](https://hamlib.github.io/). The deamon provides a network interface to communicate with connected ham radio rigs. Check out the link above on how to get the hamlib on your device.
 
+The given [client](src/rig.rs) implements the extended response protocol. Furthermore, to not have to start the daemon each time by hand, an [abstraction](src/daemon.rs) to start and stop `rigctld` is implemented. 
 
-Example by using `nc 127.0.0.1 8001`:
+As for now, only the functions to get/set the frequency and mode are implemented within the client. The code already provides the necessary building blocks to implement the other available commands of the extended response protocol too. If you are missing a function feel free to implement it yourself or reach out to me. The same applies for the daemon. If your use case requires an additional command line switch, it should be relatively straightforward to add it. Make sure to checkout `rigctld --help` to get an overview of the available command line switches and their parameters. For now, invalid parameters are not detected. This may result in communication timeouts between the client and `rigctld`. It is therefore recommended to manually start `rigctld` with the required command line switches beforehand.
 
-| Request | Response |
-| - | - |
-| `;\get_freq` | `get_freq:;Frequency: 145000000;RPRT 0` |
-| `;\set_freq 7123.4` | `set_freq: 7123.4;RPRT 0` |
-| `;\get_mode` | `get_mode:;Mode: FM;Passband: 15000;RPRT 0` |
-| `;\set_mode USB 0` | `set_mode: USB 0;RPRT 0` |
+## Example
+
+Within the [basic example](examples/basic.rs), the usage of the library is shown. Note the explicit sleep between starting the daemon and connecting to it. It is required, since it takes some time for the daemon to start up and open the socket for incoming network connections.
+
+## Tests
+
+A few basic tests are provided for the deamon and the client. All tests will use the dummy device interface.
+
+Before running all tests at once it is recommended to first check if `rigctld` is available on the system. To check for that run `cargo test daemon::tests::rigctld_exists`. It will try to start a binary available within the systems `PATH` variable by the name `rigctld`. To execute all other tests run `cargo test -- --test-threads 1`. This makes sure to run the tests sequentially which is required since all started deamons will listen on the same port.
