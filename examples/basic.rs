@@ -8,7 +8,7 @@ async fn main() {
     d.spawn().unwrap();
 
     // Wait a few milliseconds until `rigctld` is ready
-    sleep(Duration::from_millis(500)).await;
+    sleep(Duration::from_millis(250)).await;
 
     // Connect to `rigctld`
     let mut rig = Rig::new("127.0.0.1", 4532);
