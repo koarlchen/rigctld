@@ -156,7 +156,36 @@ mod tests {
     use super::*;
 
     #[test]
-    fn rigctld_exists() {
+    fn daemon_rigctld_exists() {
         Daemon::default().spawn().unwrap();
+    }
+
+    #[test]
+    fn daemon_lifecycle() {
+        let mut d = Daemon::default();
+        d.spawn().unwrap();
+        assert_eq!(d.is_running().unwrap(), true);
+        d.kill().unwrap();
+    }
+
+    #[test]
+    fn daemon_not_running() {
+        let mut d = Daemon::default();
+        assert_eq!(d.is_running().is_err(), true);
+    }
+
+    #[test]
+    fn daemon_spawn_twice() {
+        let mut d = Daemon::default();
+        d.spawn().unwrap();
+        assert_eq!(d.spawn().is_err(), true);
+    }
+
+    #[test]
+    fn daemon_kill_twice() {
+        let mut d = Daemon::default();
+        d.spawn().unwrap();
+        d.kill().unwrap();
+        assert_eq!(d.kill().is_err(), true);
     }
 }
