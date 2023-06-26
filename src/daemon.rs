@@ -156,7 +156,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn daemon_rigctld_exists() {
+    fn rigctld_exists() {
         Daemon::default().spawn().unwrap();
     }
 
