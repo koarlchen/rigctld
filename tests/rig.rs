@@ -1,4 +1,4 @@
-use rigctld::{Daemon, PowerState, Rig, RigMode};
+use rigctld::{Daemon, PowerState, Rig, Mode};
 use tokio::runtime::Runtime;
 use tokio::time::{sleep, Duration};
 
@@ -62,12 +62,12 @@ fn rig_mode() {
         rig.connect().await.unwrap();
 
         let (mode_before, pb_before) = rig.get_mode().await.unwrap();
-        rig.set_mode(RigMode::LSB, 1234).await.unwrap();
+        rig.set_mode(Mode::LSB, 1234).await.unwrap();
         let (mode_after, pb_after) = rig.get_mode().await.unwrap();
 
-        assert_ne!(mode_before, RigMode::LSB);
+        assert_ne!(mode_before, Mode::LSB);
         assert_ne!(pb_before, 1234);
-        assert_eq!(mode_after, RigMode::LSB);
+        assert_eq!(mode_after, Mode::LSB);
         assert_eq!(pb_after, 1234);
     })
 }

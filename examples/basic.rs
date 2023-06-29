@@ -18,7 +18,7 @@ async fn main() {
     // Set mode
     let (mode, _) = rig.get_mode().await.unwrap();
     println!("Rig started in mode {}", mode);
-    rig.set_mode(rigctld::RigMode::LSB, 0).await.unwrap();
+    rig.set_mode(rigctld::Mode::LSB, 0).await.unwrap();
     let (mode, _) = rig.get_mode().await.unwrap();
     println!("Set rig to mode {}", mode);
 
