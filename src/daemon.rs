@@ -2,8 +2,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::io;
-use std::process::{Child, Command};
+use std::io::{self, Read};
+use std::process::{Child, Command, Stdio};
 
 /// Representation of `rigctld`.
 #[derive(Debug)]
@@ -71,6 +71,26 @@ impl Daemon {
         self.daemon = Some(cmd.spawn()?);
 
         Ok(())
+    }
+
+    /// Get version of `rigctld`.
+    /// Therefore spawns and returns the output of the command `rigctld --version`.
+    pub fn get_version(&self) -> Result<String, io::Error> {
+        let child = Command::new(self.program.clone())
+            .arg("--version")
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+
+        let mut version: String = String::new();
+        child
+            .wait_with_output()?
+            .stdout
+            .as_slice()
+            .read_to_string(&mut version)?;
+        version = String::from(version.trim_end());
+
+        Ok(version)
     }
 
     /// Kill a running instance of `rigctld`.
@@ -158,6 +178,11 @@ mod tests {
     #[test]
     fn rigctld_exists() {
         Daemon::default().spawn().unwrap();
+    }
+
+    #[test]
+    fn rigctld_version() {
+        Daemon::default().get_version().unwrap();
     }
 
     #[test]
