@@ -92,6 +92,35 @@ impl FromStr for RigMode {
     }
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum PowerState {
+    PowerOff,
+    PowerOn,
+    StandBy,
+}
+
+impl FromStr for PowerState {
+    type Err = RigError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "0" => Ok(PowerState::PowerOff),
+            "1" => Ok(PowerState::PowerOn),
+            "2" => Ok(PowerState::StandBy),
+            _ => Err(RigError::InternalError),
+        }
+    }
+}
+
+impl fmt::Display for PowerState {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            PowerState::PowerOff => write!(f, "0"),
+            PowerState::PowerOn => write!(f, "1"),
+            PowerState::StandBy => write!(f, "2"),
+        }
+    }
+}
+
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum RigError {
     /// Error in connection to `rigctld`
@@ -264,6 +293,60 @@ impl Rig {
         let passband_out = result.1.as_str().parse::<u16>().unwrap();
 
         if mode == mode_out && passband_out == passband {
+            Ok(())
+        } else {
+            Err(RigError::InternalError)
+        }
+    }
+
+    /// Get powerstate.
+    /// Important: current version of `rigctld` behaves not according to extended response protocol (see [here](https://github.com/Hamlib/Hamlib/pull/1324)).
+    ///
+    /// # Arguments:
+    ///
+    /// (None)
+    ///
+    /// # Result
+    ///
+    /// Returns the mode and passband or in case of an error the error cause.
+    pub async fn get_powerstate(&mut self) -> Result<PowerState, RigError> {
+        lazy_static! {
+            static ref RE: Regex =
+                Regex::new(r"^get_powerstat:;Power Status: (\d);RPRT 0$").unwrap();
+        }
+
+        let response = self.execute_command(r";\get_powerstat").await?;
+        let result = RE
+            .captures(&response)
+            .map_or(Err(RigError::InternalError), |c| Ok(c.get(1).unwrap()))?;
+        let passband = PowerState::from_str(result.as_str())?;
+
+        Ok(passband)
+    }
+
+    /// Set power state.
+    ///
+    /// # Arguments:
+    ///
+    /// * `state`: Power state
+    ///
+    /// # Result
+    ///
+    /// In case of an error the causing error is returned.
+    pub async fn set_powerstate(&mut self, state: &PowerState) -> Result<(), RigError> {
+        lazy_static! {
+            static ref RE: Regex = Regex::new(r"^set_powerstat: (\d);RPRT 0$").unwrap();
+        }
+
+        let request = format!(r";\set_powerstat {}", state);
+        let response = self.execute_command(&request).await?;
+
+        let result = RE
+            .captures(&response)
+            .map_or(Err(RigError::InternalError), |c| Ok(c.get(1).unwrap()))?;
+        let state_out = PowerState::from_str(result.as_str()).unwrap();
+
+        if *state == state_out {
             Ok(())
         } else {
             Err(RigError::InternalError)
