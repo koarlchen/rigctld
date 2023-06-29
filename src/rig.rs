@@ -109,6 +109,7 @@ pub struct Rig {
     port: u16,
     reader: Option<BufReader<OwnedReadHalf>>,
     writer: Option<OwnedWriteHalf>,
+    timeout: time::Duration,
 }
 
 impl Rig {
@@ -119,6 +120,7 @@ impl Rig {
             port,
             reader: None,
             writer: None,
+            timeout: time::Duration::from_millis(250),
         }
     }
 
@@ -149,6 +151,11 @@ impl Rig {
             self.writer = None;
             Ok(())
         }
+    }
+
+    /// Set communication timeout for communication with `rigctld`.
+    pub fn set_communication_timeout(&mut self, timeout: time::Duration) {
+        self.timeout = timeout;
     }
 
     /// Get frequency.
@@ -266,20 +273,20 @@ impl Rig {
     /// Issue a command to rigctld and read its response.
     async fn execute_command(&mut self, input: &str) -> Result<String, RigError> {
         write_line(self.writer.as_mut().unwrap(), input).await?;
-        read_line(self.reader.as_mut().unwrap()).await
+        read_line(self.reader.as_mut().unwrap(), self.timeout).await
     }
 }
 
-/// Read a string from a tcp stream.
-async fn read_line(stream: &mut BufReader<OwnedReadHalf>) -> Result<String, RigError> {
+/// Read a string from a tcp stream with timeout.
+async fn read_line(
+    stream: &mut BufReader<OwnedReadHalf>,
+    timeout: time::Duration,
+) -> Result<String, RigError> {
     let mut response = String::new();
 
-    let res = time::timeout(
-        time::Duration::from_millis(1000),
-        stream.read_line(&mut response),
-    )
-    .await
-    .map_err(|_| RigError::ConnectionError)?;
+    let res = time::timeout(timeout, stream.read_line(&mut response))
+        .await
+        .map_err(|_| RigError::ConnectionError)?;
 
     let _ = match res {
         Ok(0) => Err(RigError::ConnectionError),
