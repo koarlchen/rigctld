@@ -1,4 +1,4 @@
-use rigctld::{Daemon, PowerState, Rig, Mode};
+use rigctld::{Daemon, Mode, PowerState, Rig};
 use tokio::runtime::Runtime;
 use tokio::time::{sleep, Duration};
 
@@ -108,7 +108,7 @@ fn device_icom_ic7200() {
             .set_rig_file("/dev/ttyUSB0".into());
         d.spawn().unwrap();
 
-        sleep(Duration::from_millis(250)).await;
+        sleep(Duration::from_millis(1000)).await;
 
         let mut rig = Rig::new("127.0.0.1", 4532);
         rig.connect().await.unwrap();
