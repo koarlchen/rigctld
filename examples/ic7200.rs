@@ -12,7 +12,7 @@ async fn main() {
 
     sleep(Duration::from_millis(1000)).await;
 
-    let mut rig = Rig::new("127.0.0.1", 4532);
+    let mut rig = Rig::new(d.get_host(), d.get_port());
     rig.set_communication_timeout(Duration::from_millis(1000));
     rig.connect().await.unwrap();
 

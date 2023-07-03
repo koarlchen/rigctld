@@ -12,7 +12,7 @@ async fn main() {
     sleep(Duration::from_millis(250)).await;
 
     // Connect to `rigctld`
-    let mut rig = Rig::new("127.0.0.1", 4532);
+    let mut rig = Rig::new(d.get_host(), d.get_port());
     rig.connect().await.unwrap();
 
     // Set mode

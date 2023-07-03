@@ -16,7 +16,7 @@ fn lifecycle() {
 
         sleep(Duration::from_millis(250)).await;
 
-        let mut rig = Rig::new("127.0.0.1", 4532);
+        let mut rig = Rig::new(d.get_host(), d.get_port());
         rig.connect().await.unwrap();
         rig.disconnect().unwrap();
     })
@@ -38,7 +38,7 @@ fn rig_frequency() {
 
         sleep(Duration::from_millis(250)).await;
 
-        let mut rig = Rig::new("127.0.0.1", 4532);
+        let mut rig = Rig::new(d.get_host(), d.get_port());
         rig.connect().await.unwrap();
 
         let freq_before = rig.get_frequency().await.unwrap();
@@ -58,7 +58,7 @@ fn rig_mode() {
 
         sleep(Duration::from_millis(250)).await;
 
-        let mut rig = Rig::new("127.0.0.1", 4532);
+        let mut rig = Rig::new(d.get_host(), d.get_port());
         rig.connect().await.unwrap();
 
         let (mode_before, pb_before) = rig.get_mode().await.unwrap();
@@ -85,7 +85,7 @@ fn device_icom_ic7200() {
 
         sleep(Duration::from_millis(1000)).await;
 
-        let mut rig = Rig::new("127.0.0.1", 4532);
+        let mut rig = Rig::new(d.get_host(), d.get_port());
         rig.connect().await.unwrap();
 
         rig.get_frequency().await.unwrap();

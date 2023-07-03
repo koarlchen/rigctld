@@ -140,10 +140,20 @@ impl Daemon {
         self
     }
 
+    /// Get host for communication to daemon.
+    pub fn get_host(&self) -> &str {
+        &self.host
+    }
+
     /// Set the port to open the listening socket on.
     pub fn set_port(mut self, port: u16) -> Daemon {
         self.port = port;
         self
+    }
+
+    /// Get port for communication to daemon.
+    pub fn get_port(&self) -> u16 {
+        self.port
     }
 
     /// Set the device model. See `rigctld -l` for supported models.
