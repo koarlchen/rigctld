@@ -299,60 +299,6 @@ impl Rig {
         }
     }
 
-    /// Get powerstate.
-    /// Important: current version of `rigctld` behaves not according to extended response protocol (see [here](https://github.com/Hamlib/Hamlib/pull/1324)).
-    ///
-    /// # Arguments:
-    ///
-    /// (None)
-    ///
-    /// # Result
-    ///
-    /// Returns the mode and passband or in case of an error the error cause.
-    pub async fn get_powerstate(&mut self) -> Result<PowerState, RigError> {
-        lazy_static! {
-            static ref RE: Regex =
-                Regex::new(r"^get_powerstat:;Power Status: (\d);RPRT 0$").unwrap();
-        }
-
-        let response = self.execute_command(r";\get_powerstat").await?;
-        let result = RE
-            .captures(&response)
-            .map_or(Err(RigError::InternalError), |c| Ok(c.get(1).unwrap()))?;
-        let passband = PowerState::from_str(result.as_str())?;
-
-        Ok(passband)
-    }
-
-    /// Set power state.
-    ///
-    /// # Arguments:
-    ///
-    /// * `state`: Power state
-    ///
-    /// # Result
-    ///
-    /// In case of an error the causing error is returned.
-    pub async fn set_powerstate(&mut self, state: &PowerState) -> Result<(), RigError> {
-        lazy_static! {
-            static ref RE: Regex = Regex::new(r"^set_powerstat: (\d);RPRT 0$").unwrap();
-        }
-
-        let request = format!(r";\set_powerstat {}", state);
-        let response = self.execute_command(&request).await?;
-
-        let result = RE
-            .captures(&response)
-            .map_or(Err(RigError::InternalError), |c| Ok(c.get(1).unwrap()))?;
-        let state_out = PowerState::from_str(result.as_str()).unwrap();
-
-        if *state == state_out {
-            Ok(())
-        } else {
-            Err(RigError::InternalError)
-        }
-    }
-
     /// Issue a command to rigctld and read its response.
     async fn execute_command(&mut self, input: &str) -> Result<String, RigError> {
         write_line(self.writer.as_mut().unwrap(), input).await?;

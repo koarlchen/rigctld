@@ -74,31 +74,6 @@ fn rig_mode() {
 
 #[test]
 #[ignore]
-fn rig_powerstate() {
-    // FIXME: currently ignored due to bug in `rigctld`. See description at [`Rig::get_powerstat`].
-    tokio!({
-        let mut d = Daemon::default();
-        d.spawn().unwrap();
-
-        sleep(Duration::from_millis(250)).await;
-
-        let mut rig = Rig::new("127.0.0.1", 4532);
-        rig.connect().await.unwrap();
-
-        let state_before = rig.get_powerstate().await.unwrap();
-        let state_set = match state_before {
-            PowerState::PowerOff => PowerState::PowerOn,
-            PowerState::PowerOn => PowerState::PowerOff,
-            PowerState::StandBy => PowerState::PowerOff,
-        };
-        rig.set_powerstate(&state_set).await.unwrap();
-        let state_after = rig.get_powerstate().await.unwrap();
-        assert_eq!(state_set, state_after);
-    })
-}
-
-#[test]
-#[ignore]
 fn device_icom_ic7200() {
     tokio!({
         let mut d = Daemon::default()
