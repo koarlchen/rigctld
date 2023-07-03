@@ -12,7 +12,7 @@ macro_rules! tokio {
 fn lifecycle() {
     tokio!({
         let mut d = Daemon::default();
-        d.spawn().unwrap();
+        d.spawn().await.unwrap();
 
         sleep(Duration::from_millis(250)).await;
 
@@ -34,7 +34,7 @@ fn deamon_not_running() {
 fn rig_frequency() {
     tokio!({
         let mut d = Daemon::default();
-        d.spawn().unwrap();
+        d.spawn().await.unwrap();
 
         sleep(Duration::from_millis(250)).await;
 
@@ -54,7 +54,7 @@ fn rig_frequency() {
 fn rig_mode() {
     tokio!({
         let mut d = Daemon::default();
-        d.spawn().unwrap();
+        d.spawn().await.unwrap();
 
         sleep(Duration::from_millis(250)).await;
 
@@ -81,7 +81,7 @@ fn device_icom_ic7200() {
             .set_serial_speed(19200)
             .set_civ_address(0x76)
             .set_rig_file("/dev/ttyUSB0".into());
-        d.spawn().unwrap();
+        d.spawn().await.unwrap();
 
         sleep(Duration::from_millis(1000)).await;
 

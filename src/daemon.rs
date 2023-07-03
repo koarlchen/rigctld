@@ -2,8 +2,10 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-use std::io::{self, Read};
-use std::process::{Child, Command, Stdio};
+use std::io::Read;
+
+use tokio::process::{Child, Command};
+use tokio::io;
 
 /// Representation of `rigctld`.
 #[derive(Debug)]
@@ -44,7 +46,7 @@ impl Drop for Daemon {
 /// Deamon implementation.
 impl Daemon {
     /// Spawn new instance of `rigctld`.
-    pub fn spawn(&mut self) -> Result<(), io::Error> {
+    pub async fn spawn(&mut self) -> Result<(), io::Error> {
         if self.daemon.is_some() {
             return Err(io::Error::new(
                 io::ErrorKind::AlreadyExists,
@@ -75,28 +77,22 @@ impl Daemon {
 
     /// Get version of `rigctld`.
     /// Therefore spawns and returns the output of the command `rigctld --version`.
-    pub fn get_version(&self) -> Result<String, io::Error> {
+    pub async fn get_version(&self) -> Result<String, io::Error> {
         let child = Command::new(self.program.clone())
             .arg("--version")
-            .stdout(Stdio::piped())
-            .spawn()
-            .unwrap();
+            .spawn()?.wait_with_output().await?;
 
         let mut version: String = String::new();
-        child
-            .wait_with_output()?
-            .stdout
-            .as_slice()
-            .read_to_string(&mut version)?;
+        child.stdout.as_slice().read_to_string(&mut version)?;
         version = String::from(version.trim_end());
 
         Ok(version)
     }
 
     /// Kill a running instance of `rigctld`.
-    pub fn kill(&mut self) -> Result<(), io::Error> {
+    pub async fn kill(&mut self) -> Result<(), io::Error> {
         let res = if let Some(d) = self.daemon.as_mut() {
-            d.kill()
+            d.kill().await
         } else {
             Err(io::Error::new(
                 io::ErrorKind::NotFound,
@@ -184,23 +180,36 @@ impl Daemon {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tokio::runtime::Runtime;
+    
+    macro_rules! tokio {
+        ($e:expr) => {
+            Runtime::new().unwrap().block_on(async { $e })
+        };
+    }
 
     #[test]
     fn rigctld_exists() {
-        Daemon::default().spawn().unwrap();
+        tokio!({
+            Daemon::default().spawn().await.unwrap();
+        })
     }
 
     #[test]
     fn rigctld_version() {
-        Daemon::default().get_version().unwrap();
+        tokio!({
+            Daemon::default().get_version().await.unwrap();
+        })
     }
 
     #[test]
     fn daemon_lifecycle() {
-        let mut d = Daemon::default();
-        d.spawn().unwrap();
-        assert_eq!(d.is_running().unwrap(), true);
-        d.kill().unwrap();
+        tokio!({
+            let mut d = Daemon::default();
+            d.spawn().await.unwrap();
+            assert_eq!(d.is_running().unwrap(), true);
+            d.kill().await.unwrap();
+        })
     }
 
     #[test]
@@ -211,16 +220,20 @@ mod tests {
 
     #[test]
     fn daemon_spawn_twice() {
-        let mut d = Daemon::default();
-        d.spawn().unwrap();
-        assert_eq!(d.spawn().is_err(), true);
+        tokio!({
+            let mut d = Daemon::default();
+            d.spawn().await.unwrap();
+            assert_eq!(d.spawn().await.is_err(), true);
+        })
     }
 
     #[test]
     fn daemon_kill_twice() {
-        let mut d = Daemon::default();
-        d.spawn().unwrap();
-        d.kill().unwrap();
-        assert_eq!(d.kill().is_err(), true);
+        tokio!({
+            let mut d = Daemon::default();
+            d.spawn().await.unwrap();
+            d.kill().await.unwrap();
+            assert_eq!(d.kill().await.is_err(), true);
+        })
     }
 }

@@ -8,7 +8,7 @@ async fn main() {
         .set_serial_speed(19200)
         .set_civ_address(0x76)
         .set_rig_file("/dev/ttyUSB0".into());
-    d.spawn().unwrap();
+    d.spawn().await.unwrap();
 
     sleep(Duration::from_millis(1000)).await;
 

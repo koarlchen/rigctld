@@ -5,8 +5,8 @@ use tokio::time::{sleep, Duration};
 async fn main() {
     // Start `rigctld`
     let mut d = Daemon::default();
-    println!("rigctld version: {}", d.get_version().unwrap());
-    d.spawn().unwrap();
+    println!("rigctld version: {}", d.get_version().await.unwrap());
+    d.spawn().await.unwrap();
 
     // Wait a few milliseconds until `rigctld` is ready
     sleep(Duration::from_millis(250)).await;
