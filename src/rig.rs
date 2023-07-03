@@ -92,35 +92,6 @@ impl FromStr for Mode {
     }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub enum PowerState {
-    PowerOff,
-    PowerOn,
-    StandBy,
-}
-
-impl FromStr for PowerState {
-    type Err = RigError;
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "0" => Ok(PowerState::PowerOff),
-            "1" => Ok(PowerState::PowerOn),
-            "2" => Ok(PowerState::StandBy),
-            _ => Err(RigError::InternalError),
-        }
-    }
-}
-
-impl fmt::Display for PowerState {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            PowerState::PowerOff => write!(f, "0"),
-            PowerState::PowerOn => write!(f, "1"),
-            PowerState::StandBy => write!(f, "2"),
-        }
-    }
-}
-
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum RigError {
     /// Error in connection to `rigctld`

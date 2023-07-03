@@ -1,4 +1,4 @@
-use rigctld::{Daemon, Mode, PowerState, Rig};
+use rigctld::{Daemon, Mode, Rig};
 use tokio::runtime::Runtime;
 use tokio::time::{sleep, Duration};
 
