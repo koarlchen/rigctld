@@ -37,12 +37,6 @@ impl Default for Daemon {
     }
 }
 
-impl Drop for Daemon {
-    fn drop(&mut self) {
-        _ = self.kill();
-    }
-}
-
 /// Deamon implementation.
 impl Daemon {
     /// Spawn new instance of `rigctld`.
@@ -55,6 +49,7 @@ impl Daemon {
         }
 
         let mut binding = Command::new(self.program.clone());
+        binding.kill_on_drop(true);
         let cmd = binding
             .args(["-T", &self.host])
             .args(["-t", &self.port.to_string()])
