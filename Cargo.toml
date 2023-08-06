@@ -6,7 +6,7 @@ edition = "2021"
 license = "MPL-2.0"
 readme = "README.md"
 repository = "https://github.com/koarlchen/rigctld.git"
-description = "A client implementation for rigctld"
+description = "A client implementation for hamlib's rigctld"
 keywords = ["ham", "ham-radio", "hamlib", "rigctld"]
 
 
