@@ -11,9 +11,9 @@ keywords = ["ham", "ham-radio", "hamlib", "rigctld"]
 
 
 [dependencies]
-tokio = { version = "1.28.2", features = ["net", "io-util", "time", "process"] }
-thiserror = "1.0.40"
-regex = "1.8.4"
+tokio = { version = "1.29.1", features = ["net", "io-util", "time", "process"] }
+thiserror = "1.0.44"
+regex = "1.9.3"
 lazy_static = "1.4.0"
 
 [dev-dependencies]
