@@ -4,9 +4,9 @@ use tokio::time::{sleep, Duration};
 #[tokio::main]
 async fn main() {
     // Start `rigctld`
-    let mut d = Daemon::default();
-    println!("rigctld version: {}", d.get_version().await.unwrap());
-    d.spawn().await.unwrap();
+    let daemon = Daemon::default();
+    println!("rigctld version: {}", daemon.get_version().await.unwrap());
+    let mut rigctld = daemon.spawn().await.unwrap();
 
     // Wait a few milliseconds until `rigctld` is ready
     sleep(Duration::from_millis(250)).await;
@@ -14,13 +14,13 @@ async fn main() {
     // Check wether rigctld is running.
     // rigctld may crash after start if e.g. the requested port is already taken by another process.
     // This happens at runtime and thus the process starts flawlessly at first glance.
-    if !d.is_running().unwrap() {
+    if !rigctld.is_running().unwrap() {
         println!("Failed to start rigctld. Another instance already running?");
         return;
     }
 
     // Connect to `rigctld`
-    let mut rig = Rig::new(d.get_host(), d.get_port());
+    let mut rig = Rig::new(daemon.get_host(), daemon.get_port());
     rig.connect().await.unwrap();
 
     // Set mode

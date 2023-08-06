@@ -3,9 +3,59 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 use std::io::Read;
+use std::process::Stdio;
 
 use tokio::io;
 use tokio::process::{Child, Command};
+
+/// Representation of `rigctld`.
+pub struct Rigctld {
+    daemon: Option<Child>,
+}
+
+/// Rigctld implementation.
+impl Rigctld {
+    /// Create new instance of `Rigctld`.
+    pub fn new(child: Child) -> Self {
+        Self {
+            daemon: Some(child),
+        }
+    }
+
+    /// Kill a running instance of `Rigctld`.
+    pub async fn kill(&mut self) -> Result<(), io::Error> {
+        let res = if let Some(d) = self.daemon.as_mut() {
+            d.kill().await
+        } else {
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "Daemon not started",
+            ))
+        };
+
+        self.daemon = None;
+
+        res
+    }
+
+    /// Check if `Rigctld` is still running.
+    pub fn is_running(&mut self) -> Result<bool, io::Error> {
+        if let Some(d) = self.daemon.as_mut() {
+            match d.try_wait()? {
+                Some(_) => {
+                    self.daemon = None;
+                    Ok(false)
+                }
+                None => Ok(true),
+            }
+        } else {
+            Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "Daemon not started",
+            ))
+        }
+    }
+}
 
 /// Representation of `rigctld`.
 #[derive(Debug)]
@@ -17,7 +67,6 @@ pub struct Daemon {
     rig_file: Option<String>,
     serial_speed: Option<u32>,
     civ_address: Option<u16>,
-    daemon: Option<Child>,
 }
 
 impl Default for Daemon {
@@ -32,22 +81,14 @@ impl Default for Daemon {
             rig_file: None,
             serial_speed: None,
             civ_address: None,
-            daemon: None,
         }
     }
 }
 
 /// Deamon implementation.
 impl Daemon {
-    /// Spawn new instance of `rigctld`.
-    pub async fn spawn(&mut self) -> Result<(), io::Error> {
-        if self.daemon.is_some() {
-            return Err(io::Error::new(
-                io::ErrorKind::AlreadyExists,
-                "Daemon already started",
-            ));
-        }
-
+    /// Spawn new instance of `Rigctld`.
+    pub async fn spawn(&self) -> Result<Rigctld, io::Error> {
         let mut binding = Command::new(self.program.clone());
         binding.kill_on_drop(true);
         let cmd = binding
@@ -65,15 +106,16 @@ impl Daemon {
             cmd.args(["-c", &civ.to_string()]);
         }
 
-        self.daemon = Some(cmd.spawn()?);
+        let daemon = Rigctld::new(cmd.spawn()?);
 
-        Ok(())
+        Ok(daemon)
     }
 
     /// Get version of `rigctld`.
     /// Therefore spawns and returns the output of the command `rigctld --version`.
     pub async fn get_version(&self) -> Result<String, io::Error> {
         let child = Command::new(self.program.clone())
+            .stdout(Stdio::piped())
             .arg("--version")
             .spawn()?
             .wait_with_output()
@@ -84,40 +126,6 @@ impl Daemon {
         version = String::from(version.trim_end());
 
         Ok(version)
-    }
-
-    /// Kill a running instance of `rigctld`.
-    pub async fn kill(&mut self) -> Result<(), io::Error> {
-        let res = if let Some(d) = self.daemon.as_mut() {
-            d.kill().await
-        } else {
-            Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "Daemon not started",
-            ))
-        };
-
-        self.daemon = None;
-
-        res
-    }
-
-    /// Check if `rigctld` is still running.
-    pub fn is_running(&mut self) -> Result<bool, io::Error> {
-        if let Some(d) = self.daemon.as_mut() {
-            match d.try_wait()? {
-                Some(_) => {
-                    self.daemon = None;
-                    Ok(false)
-                }
-                None => Ok(true),
-            }
-        } else {
-            Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                "Daemon not started",
-            ))
-        }
     }
 
     /// Sets the name of the `rigctld` program.
@@ -202,33 +210,16 @@ mod tests {
     #[test]
     fn daemon_lifecycle() {
         tokio!({
-            let mut d = Daemon::default();
-            d.spawn().await.unwrap();
+            let mut d = Daemon::default().spawn().await.unwrap();
             assert_eq!(d.is_running().unwrap(), true);
             d.kill().await.unwrap();
         })
     }
 
     #[test]
-    fn daemon_not_running() {
-        let mut d = Daemon::default();
-        assert_eq!(d.is_running().is_err(), true);
-    }
-
-    #[test]
-    fn daemon_spawn_twice() {
-        tokio!({
-            let mut d = Daemon::default();
-            d.spawn().await.unwrap();
-            assert_eq!(d.spawn().await.is_err(), true);
-        })
-    }
-
-    #[test]
     fn daemon_kill_twice() {
         tokio!({
-            let mut d = Daemon::default();
-            d.spawn().await.unwrap();
+            let mut d = Daemon::default().spawn().await.unwrap();
             d.kill().await.unwrap();
             assert_eq!(d.kill().await.is_err(), true);
         })

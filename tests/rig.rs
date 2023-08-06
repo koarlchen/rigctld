@@ -11,14 +11,18 @@ macro_rules! tokio {
 #[test]
 fn lifecycle() {
     tokio!({
-        let mut d = Daemon::default();
-        d.spawn().await.unwrap();
+        let daemon = Daemon::default();
+        let mut rigctld = daemon.spawn().await.unwrap();
 
         sleep(Duration::from_millis(250)).await;
 
-        let mut rig = Rig::new(d.get_host(), d.get_port());
+        assert!(rigctld.is_running().unwrap());
+
+        let mut rig = Rig::new(daemon.get_host(), daemon.get_port());
         rig.connect().await.unwrap();
         assert_eq!(rig.disconnect(), true);
+
+        rigctld.kill().await.unwrap();
     })
 }
 
@@ -33,12 +37,12 @@ fn deamon_not_running() {
 #[test]
 fn rig_frequency() {
     tokio!({
-        let mut d = Daemon::default();
-        d.spawn().await.unwrap();
+        let daemon = Daemon::default();
+        let mut rigctld = daemon.spawn().await.unwrap();
 
         sleep(Duration::from_millis(250)).await;
 
-        let mut rig = Rig::new(d.get_host(), d.get_port());
+        let mut rig = Rig::new(daemon.get_host(), daemon.get_port());
         rig.connect().await.unwrap();
 
         let freq_before = rig.get_frequency().await.unwrap();
@@ -47,18 +51,20 @@ fn rig_frequency() {
 
         assert_ne!(freq_before, 7123000);
         assert_eq!(freq_after, 7123000);
+
+        rigctld.kill().await.unwrap();
     })
 }
 
 #[test]
 fn rig_mode() {
     tokio!({
-        let mut d = Daemon::default();
-        d.spawn().await.unwrap();
+        let daemon = Daemon::default();
+        let mut rigctld = daemon.spawn().await.unwrap();
 
         sleep(Duration::from_millis(250)).await;
 
-        let mut rig = Rig::new(d.get_host(), d.get_port());
+        let mut rig = Rig::new(daemon.get_host(), daemon.get_port());
         rig.connect().await.unwrap();
 
         let (mode_before, pb_before) = rig.get_mode().await.unwrap();
@@ -69,6 +75,8 @@ fn rig_mode() {
         assert_ne!(pb_before, 1234);
         assert_eq!(mode_after, Mode::LSB);
         assert_eq!(pb_after, 1234);
+
+        rigctld.kill().await.unwrap();
     })
 }
 
@@ -76,19 +84,21 @@ fn rig_mode() {
 #[ignore]
 fn device_icom_ic7200() {
     tokio!({
-        let mut d = Daemon::default()
+        let daemon = Daemon::default()
             .set_model(3061)
             .set_serial_speed(19200)
             .set_civ_address(0x76)
             .set_rig_file("/dev/ttyUSB0".into());
-        d.spawn().await.unwrap();
+        let mut rigctld = daemon.spawn().await.unwrap();
 
         sleep(Duration::from_millis(1000)).await;
 
-        let mut rig = Rig::new(d.get_host(), d.get_port());
+        let mut rig = Rig::new(daemon.get_host(), daemon.get_port());
         rig.connect().await.unwrap();
 
         rig.get_frequency().await.unwrap();
         rig.get_mode().await.unwrap();
+
+        rigctld.kill().await.unwrap();
     })
 }

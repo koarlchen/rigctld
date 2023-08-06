@@ -3,16 +3,16 @@ use tokio::time::{sleep, Duration};
 
 #[tokio::main]
 async fn main() {
-    let mut d = Daemon::default()
+    let daemon = Daemon::default()
         .set_model(3061)
         .set_serial_speed(19200)
         .set_civ_address(0x76)
         .set_rig_file("/dev/ttyUSB0".into());
-    d.spawn().await.unwrap();
+    let _rigctld = daemon.spawn().await.unwrap();
 
     sleep(Duration::from_millis(1000)).await;
 
-    let mut rig = Rig::new(d.get_host(), d.get_port());
+    let mut rig = Rig::new(daemon.get_host(), daemon.get_port());
     rig.set_communication_timeout(Duration::from_millis(1000));
     rig.connect().await.unwrap();
 
