@@ -155,7 +155,7 @@ impl Rig {
     }
 
     /// Disconnect from `rigctld`.
-    /// Returns true after disconnect. May return false in case the connection is already closed.
+    /// Returns true after disconnect. May return false in case the connection was already closed.
     pub fn disconnect(&mut self) -> bool {
         if self.is_connected() {
             self.reader = None;
@@ -176,7 +176,7 @@ impl Rig {
         self.reader.is_some() && self.writer.is_some()
     }
 
-    /// Get frequency.
+    /// Get the rigs frequency.
     ///
     /// # Arguments:
     ///
@@ -199,7 +199,7 @@ impl Rig {
         Ok(freq)
     }
 
-    /// Set frequency.
+    /// Set the rigs frequency.
     ///
     /// # Arguments:
     ///
@@ -228,7 +228,7 @@ impl Rig {
         }
     }
 
-    /// Get mode.
+    /// Get the rigs mode.
     ///
     /// # Arguments:
     ///
@@ -255,7 +255,7 @@ impl Rig {
         Ok((mode, passband))
     }
 
-    /// Set mode.
+    /// Set the rigs mode.
     ///
     /// # Arguments:
     ///
@@ -321,7 +321,7 @@ impl Rig {
     }
 
     /// Write a string to a tcp stream.
-    /// Function appends '\n' to the given string befor sending it.
+    /// Function appends '\n' to the given string before sending it.
     async fn write_line(&mut self, data: &str) -> Result<(), RigError> {
         self.writer
             .as_mut()

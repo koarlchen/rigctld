@@ -8,7 +8,7 @@ use std::process::Stdio;
 use tokio::io;
 use tokio::process::{Child, Command};
 
-/// Representation of `rigctld`.
+/// Representation of hamlib's `rigctld`.
 pub struct Rigctld {
     daemon: Option<Child>,
 }
@@ -38,7 +38,7 @@ impl Rigctld {
         res
     }
 
-    /// Check if `Rigctld` is still running.
+    /// Check if `Rigctld` is running.
     pub fn is_running(&mut self) -> Result<bool, io::Error> {
         if let Some(d) = self.daemon.as_mut() {
             match d.try_wait()? {
@@ -57,7 +57,7 @@ impl Rigctld {
     }
 }
 
-/// Representation of `rigctld`.
+/// Representation of `rigctld` commandline parameters.
 #[derive(Debug)]
 pub struct Daemon {
     program: String,
@@ -129,7 +129,7 @@ impl Daemon {
     }
 
     /// Sets the name of the `rigctld` program.
-    /// The name may be prefixed with the path to `rigctld` if it is not present within the `PATH` variable.
+    /// The name may be prefixed with the path to `rigctld` if it is not present within the systems `PATH`.
     pub fn set_program(mut self, app: String) -> Daemon {
         self.program = app;
         self
