@@ -4,8 +4,8 @@
 
 use std::io::Read;
 
-use tokio::process::{Child, Command};
 use tokio::io;
+use tokio::process::{Child, Command};
 
 /// Representation of `rigctld`.
 #[derive(Debug)]
@@ -75,7 +75,9 @@ impl Daemon {
     pub async fn get_version(&self) -> Result<String, io::Error> {
         let child = Command::new(self.program.clone())
             .arg("--version")
-            .spawn()?.wait_with_output().await?;
+            .spawn()?
+            .wait_with_output()
+            .await?;
 
         let mut version: String = String::new();
         child.stdout.as_slice().read_to_string(&mut version)?;
@@ -176,7 +178,7 @@ impl Daemon {
 mod tests {
     use super::*;
     use tokio::runtime::Runtime;
-    
+
     macro_rules! tokio {
         ($e:expr) => {
             Runtime::new().unwrap().block_on(async { $e })

@@ -18,7 +18,7 @@ fn lifecycle() {
 
         let mut rig = Rig::new(d.get_host(), d.get_port());
         rig.connect().await.unwrap();
-        rig.disconnect().unwrap();
+        assert_eq!(rig.disconnect(), true);
     })
 }
 

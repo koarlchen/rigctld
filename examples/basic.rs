@@ -11,6 +11,14 @@ async fn main() {
     // Wait a few milliseconds until `rigctld` is ready
     sleep(Duration::from_millis(250)).await;
 
+    // Check wether rigctld is running.
+    // rigctld may crash after start if e.g. the requested port is already taken by another process.
+    // This happens at runtime and thus the process starts flawlessly at first glance.
+    if !d.is_running().unwrap() {
+        println!("Failed to start rigctld. Another instance already running?");
+        return;
+    }
+
     // Connect to `rigctld`
     let mut rig = Rig::new(d.get_host(), d.get_port());
     rig.connect().await.unwrap();

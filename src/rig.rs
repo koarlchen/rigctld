@@ -94,9 +94,21 @@ impl FromStr for Mode {
 
 #[derive(Error, Debug, PartialEq, Eq)]
 pub enum RigError {
-    /// Error in connection to `rigctld`
-    #[error("Error in connection to `rigctld`")]
+    /// Failed to connect to `rigctld`
+    #[error("Failed to connect")]
     ConnectionError,
+
+    /// Timeout in communication to `rigctld`
+    #[error("Timeout in communication")]
+    CommunicationTimeout,
+
+    /// Lost connection to to `rigctld`
+    #[error("Connection lost")]
+    ConnectionLost,
+
+    /// Already connected to `rigctld`
+    #[error("Already connected")]
+    AlreadyConnected,
 
     /// Internal error
     #[error("Internal error")]
@@ -126,8 +138,8 @@ impl Rig {
 
     /// Connect to a already running `rigctld`.
     pub async fn connect(&mut self) -> Result<(), RigError> {
-        if self.reader.is_some() && self.writer.is_some() {
-            return Err(RigError::ConnectionError);
+        if self.is_connected() {
+            return Err(RigError::AlreadyConnected);
         }
 
         let constring = format!("{}:{}", self.host, self.port);
@@ -143,19 +155,25 @@ impl Rig {
     }
 
     /// Disconnect from `rigctld`.
-    pub fn disconnect(&mut self) -> Result<(), RigError> {
-        if self.reader.is_none() && self.writer.is_none() {
-            Err(RigError::ConnectionError)
-        } else {
+    /// Returns true after disconnect. May return false in case the connection is already closed.
+    pub fn disconnect(&mut self) -> bool {
+        if self.is_connected() {
             self.reader = None;
             self.writer = None;
-            Ok(())
+            true
+        } else {
+            false
         }
     }
 
     /// Set communication timeout for communication with `rigctld`.
     pub fn set_communication_timeout(&mut self, timeout: time::Duration) {
         self.timeout = timeout;
+    }
+
+    /// Check if connected to rig
+    pub fn is_connected(&self) -> bool {
+        self.reader.is_some() && self.writer.is_some()
     }
 
     /// Get frequency.
@@ -272,38 +290,44 @@ impl Rig {
 
     /// Issue a command to rigctld and read its response.
     async fn execute_command(&mut self, input: &str) -> Result<String, RigError> {
-        write_line(self.writer.as_mut().unwrap(), input).await?;
-        read_line(self.reader.as_mut().unwrap(), self.timeout).await
+        self.write_line(input).await?;
+        self.read_line(self.timeout).await
     }
-}
 
-/// Read a string from a tcp stream with timeout.
-async fn read_line(
-    stream: &mut BufReader<OwnedReadHalf>,
-    timeout: time::Duration,
-) -> Result<String, RigError> {
-    let mut response = String::new();
+    /// Read a string from a tcp stream with timeout.
+    async fn read_line(&mut self, timeout: time::Duration) -> Result<String, RigError> {
+        let mut response = String::new();
 
-    let res = time::timeout(timeout, stream.read_line(&mut response))
+        let res = time::timeout(
+            timeout,
+            self.reader.as_mut().unwrap().read_line(&mut response),
+        )
         .await
-        .map_err(|_| RigError::ConnectionError)?;
+        .map_err(|_| RigError::CommunicationTimeout)?;
 
-    let _ = match res {
-        Ok(0) => Err(RigError::ConnectionError),
-        Err(_) => Err(RigError::InternalError),
-        Ok(num) => Ok(num),
-    }?;
+        let _ = match res {
+            Ok(0) => {
+                self.reader = None;
+                self.writer = None;
+                Err(RigError::ConnectionLost)
+            }
+            Err(_) => Err(RigError::InternalError),
+            Ok(num) => Ok(num),
+        }?;
 
-    response = String::from(response.trim_end());
+        response = String::from(response.trim_end());
 
-    Ok(response)
-}
+        Ok(response)
+    }
 
-/// Write a string to a tcp stream.
-/// Function appends '\n' to the given string befor sending it.
-async fn write_line(stream: &mut OwnedWriteHalf, data: &str) -> Result<(), RigError> {
-    stream
-        .write_all(format!("{}\n", data).as_bytes())
-        .await
-        .map_err(|_| RigError::ConnectionError)
+    /// Write a string to a tcp stream.
+    /// Function appends '\n' to the given string befor sending it.
+    async fn write_line(&mut self, data: &str) -> Result<(), RigError> {
+        self.writer
+            .as_mut()
+            .unwrap()
+            .write_all(format!("{}\n", data).as_bytes())
+            .await
+            .map_err(|_| RigError::InternalError)
+    }
 }
